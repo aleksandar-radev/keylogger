@@ -4,19 +4,21 @@ import os
 import glob
 import re
 
-
-
+MINUTES_IN_YEAR = 525949.2
+MINUTES_IN_MONTH = 43829.1
+MINUTES_IN_DAY = 1440
+MINUTES_IN_HOUR = 60
 class Application(tk.Frame):
-    def __init__(self, master=None):
+    def __init__(self, logging, master=None):
         super().__init__(master)
         self.master = master
+        self.logging = logging
         self.grid()
         self.create_widgets()
 
     def create_widgets(self):
-        global logging
         self.on_off_button = tk.Button(self)
-        if logging:
+        if self.logging:
             self.configure(bg='green')
             self.on_off_button['text'] = 'ON'
         else:
@@ -99,10 +101,8 @@ class Application(tk.Frame):
         self.days_label["text"] = f"{number_of_deleted_screenshots} screenshots successfully deleted!"
 
     def toggle_logging(self):
-        global logging
-        print(logging)
-        logging = not logging
-        if logging:
+        self.logging = not self.logging
+        if self.logging:
             self.configure(bg='green')
             self.on_off_button['text'] = 'ON'
         else:
