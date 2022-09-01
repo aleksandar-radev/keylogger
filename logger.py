@@ -7,12 +7,11 @@ from threading import Thread
 
 import pynput
 from mss import mss
-from PIL import Image, ImageGrab
+from PIL import Image
 from pynput.keyboard import Key
 from pynput.mouse import Button as MouseButton
 
 from ui import Application
-
 
 class Keylogger():
     def __init__(self, logging):
