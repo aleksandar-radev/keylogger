@@ -1,4 +1,5 @@
 from threading import Thread
+
 from logger import Keylogger
 
 logging = True

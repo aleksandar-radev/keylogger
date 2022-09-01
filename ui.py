@@ -1,8 +1,8 @@
+import glob
+import os
+import re
 import tkinter as tk
 from datetime import datetime as date
-import os
-import glob
-import re
 
 MINUTES_IN_YEAR = 525949.2
 MINUTES_IN_MONTH = 43829.1
