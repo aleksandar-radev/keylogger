@@ -32,8 +32,12 @@ BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor,
 			topLeftX = info.rcMonitor.left;
 			topLeftY = info.rcMonitor.top;
 		}
-		botRightX = info.rcMonitor.right;
-		botRightY = info.rcMonitor.bottom;
+		if (botRightX < info.rcMonitor.right) {
+			botRightX = info.rcMonitor.right;
+		}
+		if (botRightY < info.rcMonitor.bottom) {
+			botRightY = info.rcMonitor.bottom;
+		}
 	}
 	return TRUE;  // continue enumerating
 }

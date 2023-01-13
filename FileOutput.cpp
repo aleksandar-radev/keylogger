@@ -11,17 +11,19 @@
 //Visual Studio shortcut for adding library:
 #pragma comment(lib, "Gdiplus.lib")
 
-SYSTEMTIME LastTime = { 0 };
+int LastSeconds = 0;
 
 void FileOutput::log(std::string text)
 {
-	SYSTEMTIME LocalTime;
-	GetLocalTime(&LocalTime);
+	auto duration = std::chrono::system_clock::now().time_since_epoch();
+	int CurrentSeconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
 
 	std::ofstream outfile;
 	outfile.open("file.txt", std::ios_base::app); // append instead of overwrite
 
-	if (LastTime.wYear == 0 || LocalTime.wMinute > LastTime.wMinute) {
+	if (LastSeconds + 60 < CurrentSeconds) {
+		LastSeconds = CurrentSeconds;
+		SYSTEMTIME LastTime;
 		GetLocalTime(&LastTime);
 		std::string day = std::to_string(LastTime.wDay);
 		std::string month = std::to_string(LastTime.wMonth);
