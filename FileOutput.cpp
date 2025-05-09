@@ -8,7 +8,7 @@
 #include "ShellAPI.h"
 #include <string>
 #include "gdiplus.h"
-//Visual Studio shortcut for adding library:
+// Visual Studio shortcut for adding library:
 #pragma comment(lib, "Gdiplus.lib")
 
 int LastSeconds = 0;
@@ -21,7 +21,8 @@ void FileOutput::log(std::string text)
 	std::ofstream outfile;
 	outfile.open("file.txt", std::ios_base::app); // append instead of overwrite
 
-	if (LastSeconds + 60 < CurrentSeconds) {
+	if (LastSeconds + 60 < CurrentSeconds)
+	{
 		LastSeconds = CurrentSeconds;
 		SYSTEMTIME LastTime;
 		GetLocalTime(&LastTime);
@@ -34,12 +35,12 @@ void FileOutput::log(std::string text)
 		std::string second = std::to_string(LastTime.wSecond);
 
 		std::string date = "\n" +
-			(day.length() == 1 ? "0" + day : day) + "-" +
-			(month.length() == 1 ? "0" + month : month) + "-" +
-			year + " " +
-			(hour.length() == 1 ? "0" + hour : hour) + ":" +
-			(minute.length() == 1 ? "0" + minute : minute) + ":" +
-			(second.length() == 1 ? "0" + second : second) + "-->";
+						   (day.length() == 1 ? "0" + day : day) + "-" +
+						   (month.length() == 1 ? "0" + month : month) + "-" +
+						   year + " " +
+						   (hour.length() == 1 ? "0" + hour : hour) + ":" +
+						   (minute.length() == 1 ? "0" + minute : minute) + ":" +
+						   (second.length() == 1 ? "0" + second : second) + "-->";
 		outfile << date;
 	}
 
@@ -47,22 +48,18 @@ void FileOutput::log(std::string text)
 	outfile.close();
 }
 
-
-
-
-
-int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
+int GetEncoderClsid(const WCHAR *format, CLSID *pClsid)
 {
-	UINT  num = 0;          // number of image encoders
-	UINT  size = 0;         // size of the image encoder array in bytes
+	UINT num = 0;  // number of image encoders
+	UINT size = 0; // size of the image encoder array in bytes
 
 	Gdiplus::GetImageEncodersSize(&num, &size);
 	if (size == 0)
-		return -1;  // Failure
+		return -1; // Failure
 
-	Gdiplus::ImageCodecInfo* pImageCodecInfo = (Gdiplus::ImageCodecInfo*)(malloc(size));
+	Gdiplus::ImageCodecInfo *pImageCodecInfo = (Gdiplus::ImageCodecInfo *)(malloc(size));
 	if (pImageCodecInfo == NULL)
-		return -1;  // Failure
+		return -1; // Failure
 
 	GetImageEncoders(num, size, pImageCodecInfo);
 
@@ -72,12 +69,12 @@ int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
 		{
 			*pClsid = pImageCodecInfo[j].Clsid;
 			free(pImageCodecInfo);
-			return j;  // Success
+			return j; // Success
 		}
 	}
 
 	free(pImageCodecInfo);
-	return -1;  // Failure
+	return -1; // Failure
 }
 
 void FileOutput::screenshot(POINT a, POINT b)
@@ -87,14 +84,15 @@ void FileOutput::screenshot(POINT a, POINT b)
 	int new_w = w / 1.25;
 	int new_h = h / 1.25;
 
-	if (w <= 0) return;
-	if (h <= 0) return;
-
+	if (w <= 0)
+		return;
+	if (h <= 0)
+		return;
 
 	std::cout << "taking screenshot\n";
 
-	HDC     hScreen = GetDC(HWND_DESKTOP);
-	HDC     hDc = CreateCompatibleDC(hScreen);
+	HDC hScreen = GetDC(HWND_DESKTOP);
+	HDC hDc = CreateCompatibleDC(hScreen);
 	HBITMAP hBitmap = CreateCompatibleBitmap(hScreen, new_w, new_h);
 	HGDIOBJ old_obj = SelectObject(hDc, hBitmap);
 	SetStretchBltMode(hDc, HALFTONE);
@@ -106,18 +104,18 @@ void FileOutput::screenshot(POINT a, POINT b)
 
 	GetEncoderClsid(L"image/png", &clsid);
 
-	CreateDirectory(L"images", NULL);
+	CreateDirectoryW(L"images", NULL);
 
 	SYSTEMTIME LocalTime;
 	GetLocalTime(&LocalTime);
 
 	std::wstring pngName = L"images\\" +
-		std::to_wstring(LocalTime.wDay) + L"-" +
-		std::to_wstring(LocalTime.wMonth) + L"-" +
-		std::to_wstring(LocalTime.wYear) + L"=" +
-		std::to_wstring(LocalTime.wHour) + L"_" +
-		std::to_wstring(LocalTime.wMinute) + L"_" +
-		std::to_wstring(LocalTime.wSecond) + L".png";
+						   std::to_wstring(LocalTime.wDay) + L"-" +
+						   std::to_wstring(LocalTime.wMonth) + L"-" +
+						   std::to_wstring(LocalTime.wYear) + L"=" +
+						   std::to_wstring(LocalTime.wHour) + L"_" +
+						   std::to_wstring(LocalTime.wMinute) + L"_" +
+						   std::to_wstring(LocalTime.wSecond) + L".png";
 
 	bitmap.Save(pngName.c_str(), &clsid);
 
@@ -127,9 +125,10 @@ void FileOutput::screenshot(POINT a, POINT b)
 	DeleteObject(hBitmap);
 }
 
-wchar_t* widen(const std::string& str) {
-	wchar_t* dest = new wchar_t[str.size() + 1];
-	char* temp = new char[str.size()];
+wchar_t *widen(const std::string &str)
+{
+	wchar_t *dest = new wchar_t[str.size() + 1];
+	char *temp = new char[str.size()];
 	for (int i = 0; i < str.size(); i++)
 		dest[i] = str[i];
 	dest[str.size()] = '\0';

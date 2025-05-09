@@ -402,3 +402,5 @@ FodyWeavers.xsd
 *.sln.iml
 .vs/ghostly-log/v17/Browse.VC.db
 .vs/ghostly-log/v17/.suo
+
+build/

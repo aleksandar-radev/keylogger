@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug ghostly-log",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/ghostly-log.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb.exe"
+        }
+    ]
+}
