@@ -8,6 +8,7 @@
 #include "ShellAPI.h"
 #include <string>
 #include "gdiplus.h"
+#include <filesystem>
 // Visual Studio shortcut for adding library:
 #pragma comment(lib, "Gdiplus.lib")
 
@@ -18,32 +19,37 @@ void FileOutput::log(std::string text)
 	auto duration = std::chrono::system_clock::now().time_since_epoch();
 	int CurrentSeconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
 
+	// Create logs directory if it doesn't exist
+	std::filesystem::create_directory("logs");
+
+	// Get current date for filename
+	SYSTEMTIME LastTime;
+	GetLocalTime(&LastTime);
+	char dateName[32];
+	sprintf_s(dateName, "%04d-%02d-%02d.txt", LastTime.wYear, LastTime.wMonth, LastTime.wDay);
+	std::string logPath = std::string("logs/") + dateName;
+
 	std::ofstream outfile;
-	outfile.open("file.txt", std::ios_base::app); // append instead of overwrite
+	outfile.open(logPath, std::ios_base::app); // append instead of overwrite
 
 	if (LastSeconds + 60 < CurrentSeconds)
 	{
 		LastSeconds = CurrentSeconds;
-		SYSTEMTIME LastTime;
-		GetLocalTime(&LastTime);
 		std::string day = std::to_string(LastTime.wDay);
 		std::string month = std::to_string(LastTime.wMonth);
 		std::string year = std::to_string(LastTime.wYear);
-
 		std::string hour = std::to_string(LastTime.wHour);
 		std::string minute = std::to_string(LastTime.wMinute);
 		std::string second = std::to_string(LastTime.wSecond);
-
 		std::string date = "\n" +
 						   (day.length() == 1 ? "0" + day : day) + "-" +
 						   (month.length() == 1 ? "0" + month : month) + "-" +
 						   year + " " +
 						   (hour.length() == 1 ? "0" + hour : hour) + ":" +
 						   (minute.length() == 1 ? "0" + minute : minute) + ":" +
-						   (second.length() == 1 ? "0" + second : second) + "-->";
+						   (second.length() == 1 ? "0" + second : second) + "--> ";
 		outfile << date;
 	}
-
 	outfile << text;
 	outfile.close();
 }
@@ -131,6 +137,26 @@ void FileOutput::screenshot(POINT a, POINT b)
 	DeleteDC(hDc);
 	ReleaseDC(HWND_DESKTOP, hScreen);
 	DeleteObject(hBitmap);
+}
+
+void FileOutput::DeleteOldLogs(int days)
+{
+	std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	if (std::filesystem::exists("./logs") && std::filesystem::is_directory("./logs"))
+	{
+		for (const auto &entry : std::filesystem::directory_iterator("./logs"))
+		{
+			const auto modifiedTime = std::filesystem::last_write_time(entry);
+			const auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+				modifiedTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+			const auto modifiedTime_t = std::chrono::system_clock::to_time_t(sctp);
+			double ageInDays = difftime(currentTime, modifiedTime_t) / (60 * 60 * 24);
+			if (ageInDays > days)
+			{
+				std::filesystem::remove(entry);
+			}
+		}
+	}
 }
 
 wchar_t *widen(const std::string &str)

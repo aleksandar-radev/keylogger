@@ -7,5 +7,6 @@ class FileOutput
 public:
 	void log(std::string text);
 	void screenshot(POINT a, POINT b);
+	void DeleteOldLogs(int days);
 };
 

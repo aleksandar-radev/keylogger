@@ -57,7 +57,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
     switch (message)
     {
     case WM_INITDIALOG:
-        SetDlgItemInt(hDlg, IDC_DAYS_EDIT, 2, FALSE);
+        SetDlgItemInt(hDlg, IDC_DAYS_EDIT, 7, FALSE);
         UpdateStatus(hDlg);
         keylogger.start();
         return TRUE;
@@ -69,6 +69,15 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             int days = GetDlgItemInt(hDlg, IDC_DAYS_EDIT, NULL, FALSE);
             DeleteOldImages(days);
             SetDlgItemText(hDlg, IDC_LOG_STATUS_LABEL, L"Old images deleted.");
+            SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, L"");
+            break;
+        }
+        case IDC_DELETE_LOGS_BTN:
+        {
+            int days = GetDlgItemInt(hDlg, IDC_DAYS_EDIT, NULL, FALSE);
+            FileOutput logger;
+            logger.DeleteOldLogs(days);
+            SetDlgItemText(hDlg, IDC_LOG_STATUS_LABEL, L"Old logs deleted.");
             SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, L"");
             break;
         }
@@ -144,4 +153,7 @@ void DeleteOldImages(int days)
             }
         }
     }
+    // Also delete old logs
+    FileOutput logger;
+    logger.DeleteOldLogs(days);
 }
