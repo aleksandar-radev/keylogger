@@ -9,6 +9,9 @@
 #include "KeyloggerCore.h"
 #include <shellapi.h>
 
+#define APP_MUTEX_NAME L"KeyloggerAppMutex"
+#define APP_WINDOW_CLASS L"KeyloggerMainDialogClass"
+
 static KeyloggerCore keylogger;
 static COLORREF logColor = RGB(0, 128, 0);
 static COLORREF ssColor = RGB(0, 128, 0);
@@ -34,7 +37,26 @@ void RestoreFromTray(HWND hDlg);
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
+    HANDLE hMutex = CreateMutexW(NULL, FALSE, APP_MUTEX_NAME);
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        // Already running, try to find and show the window
+        HWND hOther = FindWindowW(APP_WINDOW_CLASS, NULL);
+        if (hOther) {
+            ShowWindow(hOther, SW_SHOW);
+            SetForegroundWindow(hOther);
+        }
+        return 0;
+    }
+    // Register window class for FindWindow
+    WNDCLASSEX wc = { sizeof(WNDCLASSEX) };
+    wc.lpfnWndProc = DefDlgProc;
+    wc.hInstance = hInstance;
+    wc.lpszClassName = APP_WINDOW_CLASS;
+    RegisterClassEx(&wc);
     DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_KEYLOGGER_DIALOG), NULL, DialogProc, 0);
+    UnregisterClass(APP_WINDOW_CLASS, hInstance);
+    ReleaseMutex(hMutex);
+    CloseHandle(hMutex);
     return 0;
 }
 
@@ -117,6 +139,12 @@ void RestoreFromTray(HWND hDlg) {
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (message == WM_INITDIALOG) {
+        SetWindowLongPtr(hDlg, GWLP_USERDATA, (LONG_PTR)hDlg);
+        SetClassLongPtr(hDlg, GCLP_HBRBACKGROUND, (LONG_PTR)GetSysColorBrush(COLOR_3DFACE));
+        SetWindowLongPtr(hDlg, GWLP_WNDPROC, (LONG_PTR)DefDlgProc);
+        SetWindowLongPtr(hDlg, GWLP_ID, (LONG_PTR)APP_WINDOW_CLASS);
+    }
     switch (message)
     {
     case WM_INITDIALOG:
