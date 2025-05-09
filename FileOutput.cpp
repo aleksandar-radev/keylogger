@@ -101,23 +101,31 @@ void FileOutput::screenshot(POINT a, POINT b)
 	Gdiplus::Bitmap bitmap(hBitmap, NULL);
 
 	CLSID clsid;
-
-	GetEncoderClsid(L"image/png", &clsid);
+	GetEncoderClsid(L"image/jpeg", &clsid); // Use JPEG
 
 	CreateDirectoryW(L"images", NULL);
 
 	SYSTEMTIME LocalTime;
 	GetLocalTime(&LocalTime);
 
-	std::wstring pngName = L"images\\" +
+	std::wstring jpgName = L"images\\" +
 						   std::to_wstring(LocalTime.wDay) + L"-" +
 						   std::to_wstring(LocalTime.wMonth) + L"-" +
 						   std::to_wstring(LocalTime.wYear) + L"=" +
 						   std::to_wstring(LocalTime.wHour) + L"_" +
 						   std::to_wstring(LocalTime.wMinute) + L"_" +
-						   std::to_wstring(LocalTime.wSecond) + L".png";
+						   std::to_wstring(LocalTime.wSecond) + L".jpg";
 
-	bitmap.Save(pngName.c_str(), &clsid);
+	// Set JPEG quality
+	Gdiplus::EncoderParameters encoderParameters;
+	encoderParameters.Count = 1;
+	encoderParameters.Parameter[0].Guid = Gdiplus::EncoderQuality;
+	encoderParameters.Parameter[0].Type = Gdiplus::EncoderParameterValueTypeLong;
+	encoderParameters.Parameter[0].NumberOfValues = 1;
+	ULONG quality = 85; // 0-100, higher is better quality
+	encoderParameters.Parameter[0].Value = &quality;
+
+	bitmap.Save(jpgName.c_str(), &clsid, &encoderParameters);
 
 	SelectObject(hDc, old_obj);
 	DeleteDC(hDc);
