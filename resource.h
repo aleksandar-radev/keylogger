@@ -1,0 +1,8 @@
+#define IDD_KEYLOGGER_DIALOG 101
+#define IDC_DAYS_EDIT         1001
+#define IDC_DELETE_BTN        1002
+#define IDC_LOG_BTN           1003
+#define IDC_SCREENSHOT_BTN    1004
+#define IDC_STATUS_LABEL      1005
+#define IDC_LOG_STATUS_LABEL  1006
+#define IDC_SS_STATUS_LABEL   1007

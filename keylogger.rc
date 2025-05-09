@@ -1,0 +1,15 @@
+#include "resource.h"
+
+IDD_KEYLOGGER_DIALOG DIALOG 0, 0, 220, 140
+STYLE 0x80000000L | 0x00C00000L | 0x00080000L | 0x00000080L | 0x00000800L | 0x00000200L
+CAPTION "Keylogger Control"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    LTEXT           "Days to keep images:", -1, 10, 10, 90, 10
+    EDITTEXT        IDC_DAYS_EDIT, 110, 8, 30, 14, 0x2000
+    PUSHBUTTON      "Delete Old Images", IDC_DELETE_BTN, 150, 8, 60, 14
+    PUSHBUTTON      "Start Logging", IDC_LOG_BTN, 10, 30, 90, 14
+    PUSHBUTTON      "Start Screenshots", IDC_SCREENSHOT_BTN, 110, 30, 100, 14
+    LTEXT           "Logging: OFF", IDC_LOG_STATUS_LABEL, 10, 55, 200, 10
+    LTEXT           "Screenshots: OFF", IDC_SS_STATUS_LABEL, 10, 67, 200, 10
+END
