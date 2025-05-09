@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <iomanip>
 #include "KeyloggerCore.h"
+#include <shellapi.h>
 
 static KeyloggerCore keylogger;
 static COLORREF logColor = RGB(0, 128, 0);
@@ -18,10 +19,18 @@ static std::wstring ssText = L"Screenshots: OFF";
 static HBRUSH hLogBrush = NULL;
 static HBRUSH hSSBrush = NULL;
 
+// New: Tray icon and menu
+static NOTIFYICONDATA nid = {0};
+static HMENU hTrayMenu = NULL;
+
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 void DeleteOldImages(int days);
 void UpdateStatus(HWND hDlg);
 void UpdateImagesSize(HWND hDlg);
+void ShowTrayIcon(HWND hDlg);
+void RemoveTrayIcon();
+void MinimizeToTray(HWND hDlg);
+void RestoreFromTray(HWND hDlg);
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
@@ -72,6 +81,40 @@ void UpdateImagesSize(HWND hDlg)
     SetDlgItemText(hDlg, IDC_IMAGES_SIZE_LABEL, ss.str().c_str());
 }
 
+void ShowTrayIcon(HWND hDlg) {
+    nid.cbSize = sizeof(NOTIFYICONDATA);
+    nid.hWnd = hDlg;
+    nid.uID = 1;
+    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    nid.uCallbackMessage = WM_TRAYICON;
+    nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wcscpy_s(nid.szTip, L"Keylogger Running");
+    Shell_NotifyIcon(NIM_ADD, &nid);
+    if (!hTrayMenu) {
+        hTrayMenu = CreatePopupMenu();
+        AppendMenu(hTrayMenu, MF_STRING, ID_TRAY_EXIT, L"Quit");
+    }
+}
+
+void RemoveTrayIcon() {
+    Shell_NotifyIcon(NIM_DELETE, &nid);
+    if (hTrayMenu) {
+        DestroyMenu(hTrayMenu);
+        hTrayMenu = NULL;
+    }
+}
+
+void MinimizeToTray(HWND hDlg) {
+    ShowTrayIcon(hDlg);
+    ShowWindow(hDlg, SW_HIDE);
+}
+
+void RestoreFromTray(HWND hDlg) {
+    RemoveTrayIcon();
+    ShowWindow(hDlg, SW_SHOW);
+    SetForegroundWindow(hDlg);
+}
+
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -81,6 +124,22 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         UpdateStatus(hDlg);
         keylogger.start();
         return TRUE;
+    case WM_SYSCOMMAND:
+        if ((wParam & 0xFFF0) == SC_CLOSE) {
+            MinimizeToTray(hDlg);
+            return TRUE;
+        }
+        break;
+    case WM_TRAYICON:
+        if (lParam == WM_LBUTTONDBLCLK) {
+            RestoreFromTray(hDlg);
+        } else if (lParam == WM_RBUTTONUP) {
+            POINT pt;
+            GetCursorPos(&pt);
+            SetForegroundWindow(hDlg);
+            TrackPopupMenu(hTrayMenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hDlg, NULL);
+        }
+        break;
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
@@ -109,6 +168,13 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         case IDC_SCREENSHOT_BTN:
             keylogger.setScreenshots(!keylogger.isScreenshots());
             UpdateStatus(hDlg);
+            break;
+        case ID_TRAY_EXIT:
+            RemoveTrayIcon();
+            keylogger.stop();
+            if (hLogBrush) DeleteObject(hLogBrush);
+            if (hSSBrush) DeleteObject(hSSBrush);
+            EndDialog(hDlg, 0);
             break;
         }
         break;
@@ -145,13 +211,8 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         }
         break;
     case WM_CLOSE:
-        keylogger.stop();
-        if (hLogBrush)
-            DeleteObject(hLogBrush);
-        if (hSSBrush)
-            DeleteObject(hSSBrush);
-        EndDialog(hDlg, 0);
-        break;
+        MinimizeToTray(hDlg);
+        return 0;
     }
     return FALSE;
 }
