@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <filesystem>
+#include <iomanip>
 #include "KeyloggerCore.h"
 
 static KeyloggerCore keylogger;
@@ -20,6 +21,7 @@ static HBRUSH hSSBrush = NULL;
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 void DeleteOldImages(int days);
 void UpdateStatus(HWND hDlg);
+void UpdateImagesSize(HWND hDlg);
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
@@ -50,6 +52,24 @@ void UpdateStatus(HWND hDlg)
         DeleteObject(hSSBrush);
     hLogBrush = CreateSolidBrush(logColor);
     hSSBrush = CreateSolidBrush(ssColor);
+    UpdateImagesSize(hDlg);
+}
+
+void UpdateImagesSize(HWND hDlg)
+{
+    uintmax_t totalSize = 0;
+    if (std::filesystem::exists("./images") && std::filesystem::is_directory("./images"))
+    {
+        for (const auto &entry : std::filesystem::directory_iterator("./images"))
+        {
+            if (entry.is_regular_file())
+                totalSize += std::filesystem::file_size(entry);
+        }
+    }
+    std::wstringstream ss;
+    double sizeMB = totalSize / (1024.0 * 1024.0);
+    ss << L"Images total size: " << std::fixed << std::setprecision(2) << sizeMB << L" MB";
+    SetDlgItemText(hDlg, IDC_IMAGES_SIZE_LABEL, ss.str().c_str());
 }
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -70,6 +90,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             DeleteOldImages(days);
             SetDlgItemText(hDlg, IDC_LOG_STATUS_LABEL, L"Old images deleted.");
             SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, L"");
+            UpdateImagesSize(hDlg);
             break;
         }
         case IDC_DELETE_LOGS_BTN:
