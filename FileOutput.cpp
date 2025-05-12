@@ -17,7 +17,7 @@ int LastSeconds = 0;
 void FileOutput::log(std::string text)
 {
 	auto duration = std::chrono::system_clock::now().time_since_epoch();
-	int CurrentSeconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
+	int CurrentSeconds = static_cast<int>(std::chrono::duration_cast<std::chrono::seconds>(duration).count());
 
 	// Create logs directory if it doesn't exist
 	std::filesystem::create_directory("logs");
@@ -87,8 +87,8 @@ void FileOutput::screenshot(POINT a, POINT b)
 {
 	int w = b.x - a.x;
 	int h = b.y - a.y;
-	int new_w = w / 1.25;
-	int new_h = h / 1.25;
+	int new_w = static_cast<int>(w / 1.25);
+	int new_h = static_cast<int>(h / 1.25);
 
 	if (w <= 0)
 		return;
@@ -139,6 +139,35 @@ void FileOutput::screenshot(POINT a, POINT b)
 	DeleteObject(hBitmap);
 }
 
+void FileOutput::screenshotBitmap(Gdiplus::Bitmap *bmp)
+{
+	CLSID clsid;
+	GetEncoderClsid(L"image/jpeg", &clsid); // Use JPEG
+
+	CreateDirectoryW(L"images", NULL);
+
+	SYSTEMTIME LocalTime;
+	GetLocalTime(&LocalTime);
+
+	std::wstring jpgName = L"images\\" +
+						   std::to_wstring(LocalTime.wDay) + L"-" +
+						   std::to_wstring(LocalTime.wMonth) + L"-" +
+						   std::to_wstring(LocalTime.wYear) + L"=" +
+						   std::to_wstring(LocalTime.wHour) + L"_" +
+						   std::to_wstring(LocalTime.wMinute) + L"_" +
+						   std::to_wstring(LocalTime.wSecond) + L".jpg";
+
+	Gdiplus::EncoderParameters encoderParameters;
+	encoderParameters.Count = 1;
+	encoderParameters.Parameter[0].Guid = Gdiplus::EncoderQuality;
+	encoderParameters.Parameter[0].Type = Gdiplus::EncoderParameterValueTypeLong;
+	encoderParameters.Parameter[0].NumberOfValues = 1;
+	ULONG quality = 85;
+	encoderParameters.Parameter[0].Value = &quality;
+
+	bmp->Save(jpgName.c_str(), &clsid, &encoderParameters);
+}
+
 void FileOutput::DeleteOldLogs(int days)
 {
 	std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -151,7 +180,7 @@ void FileOutput::DeleteOldLogs(int days)
 				modifiedTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
 			const auto modifiedTime_t = std::chrono::system_clock::to_time_t(sctp);
 			double ageInDays = difftime(currentTime, modifiedTime_t) / (60 * 60 * 24);
-			if (ageInDays > days)
+			if (ageInDays > static_cast<double>(days))
 			{
 				std::filesystem::remove(entry);
 			}

