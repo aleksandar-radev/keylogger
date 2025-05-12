@@ -14,4 +14,5 @@ BEGIN
     LTEXT           "Logging: OFF", IDC_LOG_STATUS_LABEL, 10, 75, 200, 10
     LTEXT           "Screenshots: OFF", IDC_SS_STATUS_LABEL, 10, 87, 200, 10
     LTEXT           "", IDC_IMAGES_SIZE_LABEL, 10, 105, 200, 10
+    PUSHBUTTON      "Quit", IDC_QUIT_BTN, 150, 120, 60, 14
 END

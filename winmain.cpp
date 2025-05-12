@@ -321,6 +321,15 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
                 DeleteObject(hSSBrush);
             EndDialog(hDlg, 0);
             break;
+        case IDC_QUIT_BTN:
+            RemoveTrayIcon();
+            keylogger.stop();
+            if (hLogBrush)
+                DeleteObject(hLogBrush);
+            if (hSSBrush)
+                DeleteObject(hSSBrush);
+            EndDialog(hDlg, 0);
+            break;
         }
         break;
     case WM_CTLCOLORSTATIC:
