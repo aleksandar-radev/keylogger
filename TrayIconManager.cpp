@@ -1,3 +1,5 @@
+#define UNICODE
+#define _UNICODE
 #include "TrayIconManager.h"
 #include <shellapi.h>
 #include "resource.h"
@@ -18,24 +20,24 @@ TrayIconManager::~TrayIconManager() {
 void TrayIconManager::Show(bool isScreenshotsOn) {
     DestroyIconIfNeeded();
     m_nid.hIcon = CreateStatusTrayIcon(isScreenshotsOn);
-    wcscpy_s(m_nid.szTip, L"Keylogger Running");
-    Shell_NotifyIcon(NIM_ADD, &m_nid);
+    wcscpy_s(m_nid.szTip, ARRAYSIZE(m_nid.szTip), L"Keylogger Running");
+    Shell_NotifyIconW(NIM_ADD, &m_nid);
     if (m_hTrayMenu) {
         DestroyMenu(m_hTrayMenu);
         m_hTrayMenu = NULL;
     }
     m_hTrayMenu = CreatePopupMenu();
     if (isScreenshotsOn) {
-        AppendMenu(m_hTrayMenu, MF_STRING, ID_TRAY_SCREENSHOT_TOGGLE, L"Stop Screenshots");
+        AppendMenuW(m_hTrayMenu, MF_STRING, ID_TRAY_SCREENSHOT_TOGGLE, L"Stop Screenshots");
     } else {
-        AppendMenu(m_hTrayMenu, MF_STRING, ID_TRAY_SCREENSHOT_TOGGLE, L"Start Screenshots");
+        AppendMenuW(m_hTrayMenu, MF_STRING, ID_TRAY_SCREENSHOT_TOGGLE, L"Start Screenshots");
     }
-    AppendMenu(m_hTrayMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenu(m_hTrayMenu, MF_STRING, ID_TRAY_EXIT, L"Quit");
+    AppendMenuW(m_hTrayMenu, MF_SEPARATOR, 0, NULL);
+    AppendMenuW(m_hTrayMenu, MF_STRING, ID_TRAY_EXIT, L"Quit");
 }
 
 void TrayIconManager::Remove() {
-    Shell_NotifyIcon(NIM_DELETE, &m_nid);
+    Shell_NotifyIconW(NIM_DELETE, &m_nid);
     if (m_hTrayMenu) {
         DestroyMenu(m_hTrayMenu);
         m_hTrayMenu = NULL;
@@ -47,9 +49,9 @@ void TrayIconManager::UpdateStatus(bool isScreenshotsOn) {
     if (m_nid.hWnd && m_nid.uID) {
         DestroyIconIfNeeded();
         m_nid.hIcon = CreateStatusTrayIcon(isScreenshotsOn);
-        Shell_NotifyIcon(NIM_MODIFY, &m_nid);
+        Shell_NotifyIconW(NIM_MODIFY, &m_nid);
         if (m_hTrayMenu) {
-            ModifyMenu(m_hTrayMenu, ID_TRAY_SCREENSHOT_TOGGLE, MF_BYCOMMAND | MF_STRING,
+            ModifyMenuW(m_hTrayMenu, ID_TRAY_SCREENSHOT_TOGGLE, MF_BYCOMMAND | MF_STRING,
                        ID_TRAY_SCREENSHOT_TOGGLE,
                        isScreenshotsOn ? L"Stop Screenshots" : L"Start Screenshots");
         }

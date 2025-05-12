@@ -6,6 +6,8 @@ set(SOURCES
     FileOutput.cpp
     KeyloggerCore.cpp
     winmain.cpp
+    TrayIconManager.cpp
+    CleanupManager.cpp
     keylogger.rc
 )
 
