@@ -9,6 +9,8 @@
 #include "KeyloggerCore.h"
 #include <shellapi.h>
 #include <gdiplus.h>
+#include "TrayIconManager.h"
+#include "CleanupManager.h"
 #pragma comment(lib, "Gdiplus.lib")
 
 #define APP_MUTEX_NAME L"KeyloggerAppMutex"
@@ -19,44 +21,30 @@ static COLORREF logColor = RGB(0, 128, 0);
 static COLORREF ssColor = RGB(0, 128, 0);
 static std::wstring logText = L"Logging: OFF";
 static std::wstring ssText = L"Screenshots: OFF";
-
-// New: Button colors
 static HBRUSH hLogBrush = NULL;
 static HBRUSH hSSBrush = NULL;
 
-// New: Tray icon and menu
-static NOTIFYICONDATA nid = {0};
-static HMENU hTrayMenu = NULL;
+// Tray icon manager instance
+static TrayIconManager* trayIconMgr = nullptr;
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-void DeleteOldImages(int days);
 void UpdateStatus(HWND hDlg);
 void UpdateImagesSize(HWND hDlg);
-void ShowTrayIcon(HWND hDlg);
-void RemoveTrayIcon();
-void MinimizeToTray(HWND hDlg);
-void RestoreFromTray(HWND hDlg);
-HICON CreateStatusTrayIcon(bool isOn);
-void UpdateTrayIconStatus();
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     HANDLE hMutex = CreateMutexW(NULL, FALSE, APP_MUTEX_NAME);
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        // Already running, try to find and show the window
         HWND hOther = FindWindowW(APP_WINDOW_CLASS, NULL);
         if (hOther)
         {
-            // Restore from tray if hidden
             ShowWindow(hOther, SW_SHOW);
             SetForegroundWindow(hOther);
-            // Send a custom message to ensure it's restored from tray
             PostMessage(hOther, WM_TRAYICON, WM_LBUTTONDBLCLK, 0);
         }
         return 0;
     }
-    // Register window class for FindWindow
     WNDCLASSEX wc = {sizeof(WNDCLASSEX)};
     wc.lpfnWndProc = DefDlgProc;
     wc.hInstance = hInstance;
@@ -77,15 +65,12 @@ void UpdateStatus(HWND hDlg)
     ssText = ss ? L"Screenshots: ON" : L"Screenshots: OFF";
     logColor = log ? RGB(0, 128, 0) : RGB(200, 0, 0);
     ssColor = ss ? RGB(0, 128, 0) : RGB(200, 0, 0);
-    // Update status labels (assume two static controls: IDC_LOG_STATUS_LABEL, IDC_SS_STATUS_LABEL)
     SetDlgItemText(hDlg, IDC_LOG_STATUS_LABEL, logText.c_str());
     SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, ssText.c_str());
-    // Update button text with status in brackets
     std::wstring logBtn = log ? L"Stop Logging [ON]" : L"Start Logging [OFF]";
     std::wstring ssBtn = ss ? L"Stop Screenshots [ON]" : L"Start Screenshots [OFF]";
     SetDlgItemText(hDlg, IDC_LOG_BTN, logBtn.c_str());
     SetDlgItemText(hDlg, IDC_SCREENSHOT_BTN, ssBtn.c_str());
-    // Update button brushes
     if (hLogBrush)
         DeleteObject(hLogBrush);
     if (hSSBrush)
@@ -93,7 +78,8 @@ void UpdateStatus(HWND hDlg)
     hLogBrush = CreateSolidBrush(logColor);
     hSSBrush = CreateSolidBrush(ssColor);
     UpdateImagesSize(hDlg);
-    UpdateTrayIconStatus(); // Update tray icon if visible
+    if (trayIconMgr)
+        trayIconMgr->UpdateStatus(keylogger.isScreenshots());
 }
 
 void UpdateImagesSize(HWND hDlg)
@@ -113,148 +99,12 @@ void UpdateImagesSize(HWND hDlg)
     SetDlgItemText(hDlg, IDC_IMAGES_SIZE_LABEL, ss.str().c_str());
 }
 
-void ShowTrayIcon(HWND hDlg)
-{
-    nid.cbSize = sizeof(NOTIFYICONDATA);
-    nid.hWnd = hDlg;
-    nid.uID = 1;
-    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-    nid.uCallbackMessage = WM_TRAYICON;
-    // Always destroy previous icon to force update
-    if (nid.hIcon)
-    {
-        DestroyIcon(nid.hIcon);
-        nid.hIcon = NULL;
-    }
-    nid.hIcon = CreateStatusTrayIcon(keylogger.isScreenshots());
-    wcscpy_s(nid.szTip, L"Keylogger Running");
-    Shell_NotifyIcon(NIM_ADD, &nid);
-    if (hTrayMenu)
-    {
-        DestroyMenu(hTrayMenu);
-        hTrayMenu = NULL;
-    }
-    hTrayMenu = CreatePopupMenu();
-    // Add Start/Stop Screenshots menu item
-    if (keylogger.isScreenshots())
-    {
-        AppendMenu(hTrayMenu, MF_STRING, ID_TRAY_SCREENSHOT_TOGGLE, L"Stop Screenshots");
-    }
-    else
-    {
-        AppendMenu(hTrayMenu, MF_STRING, ID_TRAY_SCREENSHOT_TOGGLE, L"Start Screenshots");
-    }
-    AppendMenu(hTrayMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenu(hTrayMenu, MF_STRING, ID_TRAY_EXIT, L"Quit");
-}
-
-void RemoveTrayIcon()
-{
-    Shell_NotifyIcon(NIM_DELETE, &nid);
-    if (hTrayMenu)
-    {
-        DestroyMenu(hTrayMenu);
-        hTrayMenu = NULL;
-    }
-    if (nid.hIcon)
-    {
-        DestroyIcon(nid.hIcon);
-        nid.hIcon = NULL;
-    }
-}
-
-void MinimizeToTray(HWND hDlg)
-{
-    ShowTrayIcon(hDlg);
-    ShowWindow(hDlg, SW_HIDE);
-}
-
-void RestoreFromTray(HWND hDlg)
-{
-    RemoveTrayIcon();
-    ShowWindow(hDlg, SW_SHOW);
-    SetForegroundWindow(hDlg);
-}
-
-HICON CreateStatusTrayIcon(bool isOn)
-{
-    // 32x32 icon
-    const int size = 32;
-    HDC hdc = CreateCompatibleDC(NULL);
-    HBITMAP hBmp = CreateCompatibleBitmap(GetDC(0), size, size);
-    HGDIOBJ oldBmp = SelectObject(hdc, hBmp);
-    // Fill background with transparency (black, but alpha=0)
-    BITMAPV5HEADER bi = {0};
-    bi.bV5Size = sizeof(BITMAPV5HEADER);
-    bi.bV5Width = size;
-    bi.bV5Height = -size; // top-down
-    bi.bV5Planes = 1;
-    bi.bV5BitCount = 32;
-    bi.bV5Compression = BI_BITFIELDS;
-    bi.bV5RedMask   = 0x00FF0000;
-    bi.bV5GreenMask = 0x0000FF00;
-    bi.bV5BlueMask  = 0x000000FF;
-    bi.bV5AlphaMask = 0xFF000000;
-    void* lpBits;
-    HBITMAP hDib = CreateDIBSection(hdc, (BITMAPINFO*)&bi, DIB_RGB_COLORS, &lpBits, NULL, 0);
-    HGDIOBJ oldDib = SelectObject(hdc, hDib);
-    // Fill with transparent
-    memset(lpBits, 0, size * size * 4);
-    // Draw solid circle (no border, no white core)
-    HBRUSH circle = CreateSolidBrush(isOn ? RGB(0, 200, 0) : RGB(200, 0, 0));
-    int r = 12;
-    int cx = size / 2, cy = size / 2;
-    SelectObject(hdc, circle);
-    Ellipse(hdc, cx - r, cy - r, cx + r, cy + r);
-    DeleteObject(circle);
-    // Create icon
-    ICONINFO ii = {0};
-    ii.fIcon = TRUE;
-    ii.hbmColor = hDib;
-    ii.hbmMask = hDib;
-    HICON hIcon = CreateIconIndirect(&ii);
-    // Cleanup
-    SelectObject(hdc, oldDib);
-    DeleteObject(hDib);
-    DeleteDC(hdc);
-    return hIcon;
-}
-
-void UpdateTrayIconStatus()
-{
-    // Only update icon if tray is visible
-    if (nid.hWnd && nid.uID)
-    {
-        // Always destroy the previous icon to force update
-        if (nid.hIcon)
-        {
-            DestroyIcon(nid.hIcon);
-            nid.hIcon = NULL;
-        }
-        nid.hIcon = CreateStatusTrayIcon(keylogger.isScreenshots());
-        Shell_NotifyIcon(NIM_MODIFY, &nid);
-        // Also update tray menu text for screenshots
-        if (hTrayMenu)
-        {
-            ModifyMenu(hTrayMenu, ID_TRAY_SCREENSHOT_TOGGLE, MF_BYCOMMAND | MF_STRING,
-                       ID_TRAY_SCREENSHOT_TOGGLE,
-                       keylogger.isScreenshots() ? L"Stop Screenshots" : L"Start Screenshots");
-        }
-    }
-}
-
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if (message == WM_INITDIALOG)
-    {
-        SetWindowLongPtr(hDlg, GWLP_USERDATA, (LONG_PTR)hDlg);
-        SetClassLongPtr(hDlg, GCLP_HBRBACKGROUND, (LONG_PTR)GetSysColorBrush(COLOR_3DFACE));
-        SetWindowLongPtr(hDlg, GWLP_WNDPROC, (LONG_PTR)DefDlgProc);
-        SetWindowLongPtr(hDlg, GWLP_ID, (LONG_PTR)APP_WINDOW_CLASS);
-    }
     switch (message)
     {
     case WM_INITDIALOG:
+        trayIconMgr = new TrayIconManager(hDlg);
         SetDlgItemInt(hDlg, IDC_DAYS_EDIT, 7, FALSE);
         UpdateStatus(hDlg);
         keylogger.start();
@@ -262,21 +112,26 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
     case WM_SYSCOMMAND:
         if ((wParam & 0xFFF0) == SC_CLOSE)
         {
-            MinimizeToTray(hDlg);
+            if (trayIconMgr) {
+                trayIconMgr->Show(keylogger.isScreenshots());
+                trayIconMgr->MinimizeToTray();
+            }
+            ShowWindow(hDlg, SW_HIDE);
             return TRUE;
         }
         break;
     case WM_TRAYICON:
         if (lParam == WM_LBUTTONDBLCLK)
         {
-            RestoreFromTray(hDlg);
+            if (trayIconMgr) trayIconMgr->RestoreFromTray();
         }
         else if (lParam == WM_RBUTTONUP)
         {
             POINT pt;
             GetCursorPos(&pt);
             SetForegroundWindow(hDlg);
-            TrackPopupMenu(hTrayMenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hDlg, NULL);
+            if (trayIconMgr)
+                TrackPopupMenu(trayIconMgr->GetMenu(), TPM_RIGHTBUTTON, pt.x, pt.y, 0, hDlg, NULL);
         }
         break;
     case WM_COMMAND:
@@ -285,7 +140,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         case IDC_DELETE_BTN:
         {
             int days = GetDlgItemInt(hDlg, IDC_DAYS_EDIT, NULL, FALSE);
-            DeleteOldImages(days);
+            CleanupManager::DeleteOldImages(days);
             SetDlgItemText(hDlg, IDC_LOG_STATUS_LABEL, L"Old images deleted.");
             SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, L"");
             UpdateImagesSize(hDlg);
@@ -294,8 +149,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         case IDC_DELETE_LOGS_BTN:
         {
             int days = GetDlgItemInt(hDlg, IDC_DAYS_EDIT, NULL, FALSE);
-            FileOutput logger;
-            logger.DeleteOldLogs(days);
+            CleanupManager::DeleteOldLogs(days);
             SetDlgItemText(hDlg, IDC_LOG_STATUS_LABEL, L"Old logs deleted.");
             SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, L"");
             break;
@@ -313,21 +167,25 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             UpdateStatus(hDlg);
             break;
         case ID_TRAY_EXIT:
-            RemoveTrayIcon();
+            if (trayIconMgr) trayIconMgr->Remove();
             keylogger.stop();
             if (hLogBrush)
                 DeleteObject(hLogBrush);
             if (hSSBrush)
                 DeleteObject(hSSBrush);
+            delete trayIconMgr;
+            trayIconMgr = nullptr;
             EndDialog(hDlg, 0);
             break;
         case IDC_QUIT_BTN:
-            RemoveTrayIcon();
+            if (trayIconMgr) trayIconMgr->Remove();
             keylogger.stop();
             if (hLogBrush)
                 DeleteObject(hLogBrush);
             if (hSSBrush)
                 DeleteObject(hSSBrush);
+            delete trayIconMgr;
+            trayIconMgr = nullptr;
             EndDialog(hDlg, 0);
             break;
         }
@@ -365,31 +223,12 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         }
         break;
     case WM_CLOSE:
-        MinimizeToTray(hDlg);
+        if (trayIconMgr) {
+            trayIconMgr->Show(keylogger.isScreenshots());
+            trayIconMgr->MinimizeToTray();
+        }
+        ShowWindow(hDlg, SW_HIDE);
         return 0;
     }
     return FALSE;
-}
-
-void DeleteOldImages(int days)
-{
-    std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    if (std::filesystem::exists("./images") && std::filesystem::is_directory("./images"))
-    {
-        for (const auto &entry : std::filesystem::directory_iterator("./images"))
-        {
-            const auto modifiedTime = std::filesystem::last_write_time(entry);
-            const auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-                modifiedTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
-            const auto modifiedTime_t = std::chrono::system_clock::to_time_t(sctp);
-            double ageInDays = difftime(currentTime, modifiedTime_t) / (60 * 60 * 24);
-            if (ageInDays > days)
-            {
-                std::filesystem::remove(entry);
-            }
-        }
-    }
-    // Also delete old logs
-    FileOutput logger;
-    logger.DeleteOldLogs(days);
 }
