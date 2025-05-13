@@ -11,5 +11,8 @@ public:
 	void log(std::string text);
 	void screenshot(POINT a, POINT b);
 	void screenshotBitmap(Gdiplus::Bitmap *bmp);
-	void DeleteOldLogs(int days);
+	static int DeleteOldLogs(int days);
+
+    static int lastDeletedImages;
+    static int lastDeletedLogs;
 };

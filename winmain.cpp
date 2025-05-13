@@ -142,8 +142,9 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         {
             int days = GetDlgItemInt(hDlg, IDC_DAYS_EDIT, NULL, FALSE);
             CleanupManager::DeleteOldImages(days);
-            SetDlgItemText(hDlg, IDC_LOG_STATUS_LABEL, L"Old images deleted.");
-            SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, L"");
+            std::wstringstream ss;
+            ss << FileOutput::lastDeletedImages << L" images deleted.";
+            SetDlgItemText(hDlg, IDC_DELETE_STATUS_LABEL, ss.str().c_str());
             UpdateImagesSize(hDlg);
             break;
         }
@@ -151,8 +152,9 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         {
             int days = GetDlgItemInt(hDlg, IDC_DAYS_EDIT, NULL, FALSE);
             CleanupManager::DeleteOldLogs(days);
-            SetDlgItemText(hDlg, IDC_LOG_STATUS_LABEL, L"Old logs deleted.");
-            SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, L"");
+            std::wstringstream ss;
+            ss << FileOutput::lastDeletedLogs << L" logs deleted.";
+            SetDlgItemText(hDlg, IDC_DELETE_STATUS_LABEL, ss.str().c_str());
             break;
         }
         case IDC_FORMAT_LOGS_BTN:

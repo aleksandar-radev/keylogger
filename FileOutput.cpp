@@ -14,6 +14,9 @@
 
 int LastSeconds = 0;
 
+int FileOutput::lastDeletedImages = 0;
+int FileOutput::lastDeletedLogs = 0;
+
 void FileOutput::log(std::string text)
 {
 	auto duration = std::chrono::system_clock::now().time_since_epoch();
@@ -168,8 +171,9 @@ void FileOutput::screenshotBitmap(Gdiplus::Bitmap *bmp)
 	bmp->Save(jpgName.c_str(), &clsid, &encoderParameters);
 }
 
-void FileOutput::DeleteOldLogs(int days)
+int FileOutput::DeleteOldLogs(int days)
 {
+	int deletedCount = 0;
 	std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	if (std::filesystem::exists("./logs") && std::filesystem::is_directory("./logs"))
 	{
@@ -183,9 +187,12 @@ void FileOutput::DeleteOldLogs(int days)
 			if (ageInDays > static_cast<double>(days))
 			{
 				std::filesystem::remove(entry);
+				deletedCount++;
 			}
 		}
 	}
+	lastDeletedLogs = deletedCount;
+	return deletedCount;
 }
 
 wchar_t *widen(const std::string &str)
