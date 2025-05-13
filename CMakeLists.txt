@@ -8,6 +8,7 @@ set(SOURCES
     winmain.cpp
     TrayIconManager.cpp
     CleanupManager.cpp
+    LogFormatter.cpp
     keylogger.rc
 )
 

