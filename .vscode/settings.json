@@ -73,6 +73,7 @@
         "thread": "cpp",
         "unordered_map": "cpp",
         "xhash": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "*.rh": "cpp"
     }
 }

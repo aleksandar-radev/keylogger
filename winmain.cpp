@@ -16,6 +16,7 @@
 
 #define APP_MUTEX_NAME L"KeyloggerAppMutex"
 #define APP_WINDOW_CLASS L"KeyloggerMainDialogClass"
+#define WM_RESTORE_WINDOW (WM_USER + 100)
 
 static KeyloggerCore keylogger;
 static COLORREF logColor = RGB(0, 128, 0);
@@ -37,12 +38,11 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     HANDLE hMutex = CreateMutexW(NULL, FALSE, APP_MUTEX_NAME);
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        HWND hOther = FindWindowW(APP_WINDOW_CLASS, NULL);
+        HWND hOther = FindWindowW(L"#32770", NULL); // #32770 is the system dialog class
         if (hOther)
         {
-            ShowWindow(hOther, SW_SHOW);
-            SetForegroundWindow(hOther);
-            PostMessage(hOther, WM_TRAYICON, WM_LBUTTONUP, 0);
+            ShowWindow(hOther, SW_RESTORE); // Restores if minimized, shows if hidden
+            SetForegroundWindow(hOther);    // Brings to front
         }
         return 0;
     }
@@ -109,7 +109,18 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         SetDlgItemInt(hDlg, IDC_DAYS_EDIT, 7, FALSE);
         UpdateStatus(hDlg);
         keylogger.start();
+        // Enable keyboard input for dialog
         return TRUE;
+    case WM_KEYDOWN:
+        if (wParam == VK_ESCAPE) {
+            if (trayIconMgr) {
+                trayIconMgr->Show(keylogger.isScreenshots());
+                trayIconMgr->MinimizeToTray();
+            }
+            ShowWindow(hDlg, SW_HIDE);
+            return TRUE;
+        }
+        break;
     case WM_SYSCOMMAND:
         if ((wParam & 0xFFF0) == SC_CLOSE)
         {
@@ -121,9 +132,17 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             return TRUE;
         }
         break;
+    case WM_RESTORE_WINDOW:
+        // Always show and focus the window, and remove tray icon if present
+        ShowWindow(hDlg, SW_SHOW);
+        SetForegroundWindow(hDlg);
+        if (trayIconMgr) trayIconMgr->Remove();
+        break;
     case WM_TRAYICON:
         if (lParam == WM_LBUTTONUP)
         {
+            ShowWindow(hDlg, SW_SHOW);
+            SetForegroundWindow(hDlg);
             if (trayIconMgr) trayIconMgr->RestoreFromTray();
         }
         else if (lParam == WM_RBUTTONUP)
