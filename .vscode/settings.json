@@ -72,6 +72,8 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "unordered_map": "cpp",
-        "xhash": "cpp"
+        "xhash": "cpp",
+        "regex": "cpp",
+        "*.rh": "cpp"
     }
 }

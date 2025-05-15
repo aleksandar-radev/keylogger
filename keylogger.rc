@@ -1,18 +1,21 @@
 #include "resource.h"
 
-IDD_KEYLOGGER_DIALOG DIALOG 0, 0, 220, 140
+IDD_KEYLOGGER_DIALOG DIALOG 0, 0, 260, 200
 STYLE 0x80000000L | 0x00C00000L | 0x00080000L | 0x00000080L | 0x00000800L | 0x00000200L
 CAPTION "Keylogger Control"
 FONT 8, "MS Shell Dlg"
 BEGIN
-    LTEXT           "Days to keep images:", -1, 10, 10, 90, 10
-    EDITTEXT        IDC_DAYS_EDIT, 110, 8, 30, 14, 0x2000
-    PUSHBUTTON      "Delete Old Images", IDC_DELETE_BTN, 150, 8, 60, 14
+    EDITTEXT        IDC_DAYS_EDIT, 10, 8, 30, 14, 0x2000
+    LTEXT           "days", -1, 42, 10, 25, 10
+    PUSHBUTTON      "Delete Images", IDC_DELETE_BTN, 70, 8, 80, 14
+    PUSHBUTTON      "Delete Logs", IDC_DELETE_LOGS_BTN, 160, 8, 80, 14
+    LTEXT           "", IDC_DELETE_STATUS_LABEL, 10, 28, 240, 10
     PUSHBUTTON      "Start Logging", IDC_LOG_BTN, 10, 50, 90, 14
     PUSHBUTTON      "Start Screenshots", IDC_SCREENSHOT_BTN, 110, 50, 100, 14
-    PUSHBUTTON      "Delete Old Logs", IDC_DELETE_LOGS_BTN, 150, 30, 60, 14
     LTEXT           "Logging: OFF", IDC_LOG_STATUS_LABEL, 10, 75, 200, 10
     LTEXT           "Screenshots: OFF", IDC_SS_STATUS_LABEL, 10, 87, 200, 10
     LTEXT           "", IDC_IMAGES_SIZE_LABEL, 10, 105, 200, 10
-    PUSHBUTTON      "Quit", IDC_QUIT_BTN, 150, 120, 60, 14
+    PUSHBUTTON      "Format Logs", IDC_FORMAT_LOGS_BTN, 10, 125, 90, 14
+    LTEXT           "", IDC_FORMAT_LOGS_STATUS_LABEL, 10, 145, 200, 10
+    PUSHBUTTON      "Quit", IDC_QUIT_BTN, 150, 170, 60, 14
 END
