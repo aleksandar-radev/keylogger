@@ -42,7 +42,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
         {
             ShowWindow(hOther, SW_SHOW);
             SetForegroundWindow(hOther);
-            PostMessage(hOther, WM_TRAYICON, WM_LBUTTONDBLCLK, 0);
+            PostMessage(hOther, WM_TRAYICON, WM_LBUTTONUP, 0);
         }
         return 0;
     }
@@ -122,7 +122,7 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
         }
         break;
     case WM_TRAYICON:
-        if (lParam == WM_LBUTTONDBLCLK)
+        if (lParam == WM_LBUTTONUP)
         {
             if (trayIconMgr) trayIconMgr->RestoreFromTray();
         }
