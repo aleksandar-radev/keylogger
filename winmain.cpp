@@ -214,6 +214,13 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             trayIconMgr = nullptr;
             EndDialog(hDlg, 0);
             break;
+        case IDCANCEL: // ESC key pressed, treat as close (hide to tray)
+            if (trayIconMgr) {
+                trayIconMgr->Show(keylogger.isScreenshots());
+                trayIconMgr->MinimizeToTray();
+            }
+            ShowWindow(hDlg, SW_HIDE);
+            return TRUE;
         }
         break;
     case WM_CTLCOLORSTATIC:
